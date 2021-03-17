@@ -1,4 +1,4 @@
-WS Natural Language Processing Solution
+# AWS Natural Language Processing Solution
 
 ## About
 
@@ -12,11 +12,16 @@ This solution is an end to end example of how customers can architect their solu
 
 ## Architecture
 
-![Figure 1](images/pipeline.png "Whole Pipeline: Figure 1")
-![Figure 2](images/ingestion.png "Ingestion Module: Figure 2")
-![Figure 3](images/nlp.png "NLP Module: Figure 3")
-![Figure 4](images/ocr.png "OCR Module: Figure 4")
-![Figure 5](images/metadata-services.png) "Metadata Services Module: Figure 5")
+### Whole Pipeline: Figure 1
+![Figure 1](images/pipeline.png)
+### Ingestion Module: Figure 2
+![Figure 2](images/ingestion.png)
+### NLP Module: Figure 3
+![Figure 3](images/nlp.png)
+### OCR Module: Figure 4
+![Figure 4](images/ocr.png)
+### Metadata Services Module: Figure 5
+![Figure 5](images/metadata-services.png)
 
 ## Requirements
 
