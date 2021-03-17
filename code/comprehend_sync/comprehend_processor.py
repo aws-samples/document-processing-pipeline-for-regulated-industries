@@ -29,9 +29,10 @@ lineage_client  = DocumentLineageClient(metadataTopic)
 es              = ESCluster(host=esCluster)
 
 def dissectObjectName(objectName):
-    objectParts = objectName.split("/")
-    documentId  = objectParts[0]
-    documentName = objectParts[1]
+    objectParts = objectName.split("/ocr-analysis/")
+    objectPath = objectParts[0].split("/")
+    documentId  = objectPath[0]
+    documentName = "/".join(objectPath[1:])
     return (documentId, documentName)
     
 def chunkUpTheText(text):
@@ -115,8 +116,9 @@ def runComprehend(bucketName, objectName, callerId):
     pipeline_client.stageInProgress()    
     
     document = Document(textractOutputJson)
-    comprehendFileName = "{}/{}/comprehend-output.json".format(documentId, documentName)
-    comprehendFileS3Url = "https://{}.s3.amazonaws.com/{}".format(bucketName, urllib.parse.quote_plus(comprehendFileName, safe="/"))
+    originalFileName = "{}/{}".format(documentId, documentName)
+    comprehendFileName = originalFileName + "/comprehend-output.json"
+    comprehendFileS3Url = "https://{}.s3.amazonaws.com/{}".format(comprehendBucket, urllib.parse.quote_plus(comprehendFileName, safe="/"))
     tagging = "documentId={}".format(documentId)
     
     es.connect()
@@ -144,7 +146,7 @@ def runComprehend(bucketName, objectName, callerId):
         else:
             keyPhrases, entitiesDetected = singularSendToComprehend(comprehend, text, 'en')
             
-        esPageLoad = compileESPayload(es, page_num, keyPhrases, entitiesDetected, text, table, forms, comprehendFileS3Url, documentId)
+        esPageLoad = compileESPayload(es, page_num, keyPhrases, entitiesDetected, text, table, forms, documentId)
         esPayload.append(esPageLoad)
         page_num = page_num + 1
     
@@ -170,11 +172,10 @@ def runComprehend(bucketName, objectName, callerId):
         "targetFileName":   comprehendFileName
     })
     pipeline_client.stageSucceeded()
-    print("Comprehend data uploaded to S3 at {}".format(comprehendFileS3Url))
+    print("Comprehend data uploaded to S3 at {}".format(comprehendFileName))
     
-def compileESPayload(esCluster, pageNum, keyPhrases, entitiesDetected, text, table, forms, s3Url, documentId):
+def compileESPayload(esCluster, pageNum, keyPhrases, entitiesDetected, text, table, forms, documentId):
     payload = {
-        's3link'    : s3Url,
         'documentId': documentId,
         'page'      : pageNum,
         'KeyPhrases': keyPhrases,
