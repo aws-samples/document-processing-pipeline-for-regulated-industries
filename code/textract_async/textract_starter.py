@@ -11,6 +11,7 @@ PIPELINE_STAGE = "ASYNC_START_TEXTRACT"
 snsTopic       = os.environ.get('TEXTRACT_SNS_TOPIC_ARN', None)
 snsRole        = os.environ.get('TEXTRACT_SNS_ROLE_ARN', None)
 metadataTopic  = os.environ.get('METADATA_SNS_TOPIC_ARN', None)
+targetBucketName = os.environ.get('TEXTRACT_RESULTS_BUCKET', None)
 
 if not snsTopic or not snsRole or not metadataTopic:
     raise ValueError("Missing arguments.")
@@ -22,7 +23,6 @@ def startJob(bucketName, objectName, documentId, snsTopic, snsRole):
 
     response = None
     client = AwsHelper().getClient('textract')
-
     response = client.start_document_analysis(
         ClientRequestToken  = documentId,
         DocumentLocation={
@@ -36,7 +36,12 @@ def startJob(bucketName, objectName, documentId, snsTopic, snsRole):
               "RoleArn": snsRole,
               "SNSTopicArn": snsTopic
         },
-        JobTag = documentId)
+        OutputConfig = {
+            "S3Bucket": targetBucketName,
+            "S3Prefix": objectName + "/textract-output"
+        },
+        JobTag = documentId
+    )
     return response["JobId"]
 
 
@@ -57,14 +62,15 @@ def processItem(bucketName, objectName, snsTopic, snsRole):
         "stage":      PIPELINE_STAGE
     }
     pipeline_client.stageInProgress()
-    jobId = startJob(bucketName, objectName, documentId, snsTopic, snsRole)
-
-    if (jobId):
-        pipeline_client.stageSucceeded()
-        print("Started Job with Id: {}".format(jobId))
-    else:
-        pipeline_client.stageFailed()
+    try:
+        jobId = startJob(bucketName, objectName, documentId, snsTopic, snsRole)
+    except Exception as e:
+        pipeline_client.stageFailed("Not able to start document analysis for document Id {}; bucket {} with name {}".format(documentId, bucketName, objectName))
+        raise e
+    
+    pipeline_client.stageSucceeded("Started Job with Id: {}".format(jobId))
     return jobId
+    
 
 def lambda_handler(event, context):
     if 's3' in event['Records'][0]:

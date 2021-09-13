@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 import time
-from helper import AwsHelper
+from helper import AwsHelper, S3Helper
 from og import OutputGenerator
 from metadata import PipelineOperationsClient, DocumentLineageClient
 
@@ -17,40 +17,49 @@ if not textractBucketName or not metadataTopic:
 pipeline_client = PipelineOperationsClient(metadataTopic)
 lineage_client = DocumentLineageClient(metadataTopic)
 
-def getJobResults(api, jobId):
+def getJobResults(api, jobId, objectName):
 
-    pages = []
+    resultJSON = []
 
-    time.sleep(5)
+    s3_helper = S3Helper()
+    textractRawResultsFiles = s3_helper.listObjectsInS3(
+        bucketName   = textractBucketName,
+        bucketPrefix = objectName + "/textract-output/" + jobId
+    )
+    # skip the s3 access file, which will always appear first
+    for textractResultFile in textractRawResultsFiles[1:]:
+        resultJSON.append(json.loads(s3_helper.readFromS3(textractBucketName, textractResultFile)))
+    
+    # time.sleep(5)
 
-    client = AwsHelper().getClient('textract')
-    if(api == "StartDocumentTextDetection"):
-        response = client.get_document_text_detection(JobId=jobId)
-    else:
-        response = client.get_document_analysis(JobId=jobId)
-    pages.append(response)
-    print("Resultset page received: {}".format(len(pages)))
-    nextToken = None
-    if('NextToken' in response):
-        nextToken = response['NextToken']
-        print("Next token: {}".format(nextToken))
+    # client = AwsHelper().getClient('textract')
+    # if(api == "StartDocumentTextDetection"):
+    #     response = client.get_document_text_detection(JobId=jobId)
+    # else:
+    #     response = client.get_document_analysis(JobId=jobId)
+    # pages.append(response)
+    # print("Resultset page received: {}".format(len(pages)))
+    # nextToken = None
+    # if('NextToken' in response):
+    #     nextToken = response['NextToken']
+    #     print("Next token: {}".format(nextToken))
 
-    while(nextToken):
-        time.sleep(5)
+    # while(nextToken):
+    #     time.sleep(5)
 
-        if(api == "StartDocumentTextDetection"):
-            response = client.get_document_text_detection(JobId=jobId, NextToken=nextToken)
-        else:
-            response = client.get_document_analysis(JobId=jobId, NextToken=nextToken)
+    #     if(api == "StartDocumentTextDetection"):
+    #         response = client.get_document_text_detection(JobId=jobId, NextToken=nextToken)
+    #     else:
+    #         response = client.get_document_analysis(JobId=jobId, NextToken=nextToken)
 
-        pages.append(response)
-        print("Resultset page received: {}".format(len(pages)))
-        nextToken = None
-        if('NextToken' in response):
-            nextToken = response['NextToken']
-            print("Next token: {}".format(nextToken))
+    #     pages.append(response)
+    #     print("Resultset page received: {}".format(len(pages)))
+    #     nextToken = None
+    #     if('NextToken' in response):
+    #         nextToken = response['NextToken']
+    #         print("Next token: {}".format(nextToken))
 
-    return pages
+    return resultJSON
 
 def processRequest(request):
 
@@ -69,17 +78,17 @@ def processRequest(request):
         "stage":      PIPELINE_STAGE
     }
     if status == 'FAILED':
-        pipeline_client.stageFailed("Textract Analysis didn't complete successfully")
-        raise Exception("Textract job for document ID {}; bucketName {} fileName {}; failed during Textract analysis. Please double check the document quality".format(jobTag, bucketName, objectName))
+        pipeline_client.stageFailed("Textract job for document ID {}; bucketName {} fileName {}; failed during Textract analysis. Please double check the document quality".format(jobTag, bucketName, objectName))
+        raise Exception("Textract Analysis didn't complete successfully")
     
     pipeline_client.stageInProgress()
     try:
-       pages = getJobResults(jobAPI, jobId)
+       resultJSON = getJobResults(jobAPI, jobId, objectName)
     except Exception as e:
-        pipeline_client.stageFailed()
-        raise(e)
+        pipeline_client.stageFailed("Textract job for document ID {}; bucketName {} filename {} failed during Textract processing. Could not read Textract output files under job Name {}".format(jobTag, bucketName, objectName, jobId))
+        raise Exception("Textract Analysis didn't complete successfully")
         
-    print("Result pages received: {}".format(len(pages)))
+    print("Result Textract result objects received: {}".format(len(resultJSON)))
 
     detectForms = False
     detectTables = False
@@ -90,7 +99,7 @@ def processRequest(request):
     try:
         opg = OutputGenerator(
             documentId = jobTag,
-            response   = pages,
+            response   = resultJSON,
             bucketName = textractBucketName,
             objectName = objectName,
             forms      = detectForms,
