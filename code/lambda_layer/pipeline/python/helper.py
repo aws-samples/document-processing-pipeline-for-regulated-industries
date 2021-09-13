@@ -164,6 +164,29 @@ class S3Helper:
         return obj.get()['Body'].read().decode('utf-8')
 
     @staticmethod
+    def listObjectsInS3(bucketName, bucketPrefix=None, maxKeys=1000, awsRegion=None):
+        s3 = AwsHelper().getClient('s3', awsRegion)
+        res = s3.list_objects_v2(
+                Bucket = bucketName,
+                Prefix = bucketPrefix,
+                MaxKeys = maxKeys,
+        )
+        isTruncated = res['IsTruncated']
+        nextToken = res.get('NextContinuationToken', "")
+        s3Content = [s3Object.get('Key') for s3Object in res.get('Contents', [])]
+        while (isTruncated):
+            res = s3.list_objects_v2(
+                Bucket = bucketName,
+                Prefix = bucketPrefix,
+                MaxKeys = maxKeys,
+                ContinuationToken = nextToken
+            )
+            isTruncated = res['IsTruncated']
+            nextToken = res.get('NextContinuationToken', "")
+            s3Content = s3Content + [s3Object.get('Key') for s3Object in res.get('Contents', [])]
+        return s3Content
+
+    @staticmethod
     def writeCSV(fieldNames, csvData, bucketName, s3FileName, awsRegion=None):
         csv_file = io.StringIO()
         #with open(fileName, 'w') as csv_file:

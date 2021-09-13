@@ -205,7 +205,8 @@ export class TextractPipelineStack extends cdk.Stack {
       environment: {
         TEXTRACT_SNS_TOPIC_ARN : textractJobCompletionTopic.topicArn,
         TEXTRACT_SNS_ROLE_ARN : textractServiceRole.roleArn,
-        METADATA_SNS_TOPIC_ARN : props.metadataTopic.topicArn
+        METADATA_SNS_TOPIC_ARN : props.metadataTopic.topicArn,
+        TEXTRACT_RESULTS_BUCKET: textractResultsBucket.bucketName
       }
     });
 
@@ -215,10 +216,9 @@ export class TextractPipelineStack extends cdk.Stack {
     textractAsyncStarter.addEventSource(new S3EventSource(asyncdocBucket, {
       events: [ s3.EventType.OBJECT_CREATED ]
     }));
-    //Run when a job is successfully complete
-    textractAsyncStarter.addEventSource(new SnsEventSource(textractJobCompletionTopic))
     //Permissions
     asyncdocBucket.grantRead(textractAsyncStarter)
+    textractResultsBucket.grantReadWrite(textractAsyncStarter)
     textractAsyncStarter.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["iam:PassRole"],

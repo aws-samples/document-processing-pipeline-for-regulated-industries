@@ -135,7 +135,9 @@ def runComprehend(bucketName, objectName, callerId):
         lenOfEncodedText = len(text)
         print("Comprehend documentId {} processing page {}".format(documentId, str(page_num)))
         print("Length of encoded text is " + str(lenOfEncodedText))
-        if lenOfEncodedText > COMPREHEND_CHARACTER_LIMIT:
+        if lenOfEncodedText == 0:
+            pass
+        elif lenOfEncodedText > COMPREHEND_CHARACTER_LIMIT:
             print("Size was too big to run singularly; breaking up the page text into chunks")
             try:
                 chunksOfText = chunkUpTheText(text)
