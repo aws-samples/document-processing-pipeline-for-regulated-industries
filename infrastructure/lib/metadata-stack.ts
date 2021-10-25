@@ -105,7 +105,6 @@ export class MetadataStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.asset('code/metadata'),
       handler: 'lineage.lambda_handler',
-      reservedConcurrentExecutions: 50,
       timeout: cdk.Duration.seconds(30),
       environment: {
         DOCUMENT_LINEAGE_TABLE: this.lineageTable.tableName,
@@ -129,7 +128,6 @@ export class MetadataStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.asset('code/metadata'),
       handler: 'pipeline.lambda_handler',
-      reservedConcurrentExecutions: 50,
       timeout: cdk.Duration.seconds(30),
       environment: {
         PIPELINE_OPS_TABLE: this.pipelineOpsTable.tableName,
@@ -150,7 +148,6 @@ export class MetadataStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.asset('code/metadata'),
       handler: 'registry.lambda_handler',
-      reservedConcurrentExecutions: 50,
       timeout: cdk.Duration.seconds(30),
       environment: {
         REGISTRY_TABLE: this.documentRegistryTable.tableName,

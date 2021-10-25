@@ -164,8 +164,7 @@ export class TextractPipelineStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.asset('code/textract_sync'),
       handler: 'textract_processor.lambda_handler',
-      reservedConcurrentExecutions: 1,
-      timeout: cdk.Duration.seconds(25),
+      timeout: cdk.Duration.seconds(30),
       environment: {
         PIPELINE_OPS_TABLE: props.pipelineOpsTable.tableName,
         TARGET_TEXTRACT_BUCKET_NAME: textractResultsBucket.bucketName,
@@ -200,7 +199,6 @@ export class TextractPipelineStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.asset('code/textract_async'),
       handler: 'textract_starter.lambda_handler',
-      reservedConcurrentExecutions: 50,
       timeout: cdk.Duration.seconds(60),
       environment: {
         TEXTRACT_SNS_TOPIC_ARN : textractJobCompletionTopic.topicArn,
@@ -245,7 +243,6 @@ export class TextractPipelineStack extends cdk.Stack {
       code: lambda.Code.asset('code/textract_async'),
       handler: 'textract_processor.lambda_handler',
       memorySize: 10000,
-      reservedConcurrentExecutions: 50,
       timeout: cdk.Duration.seconds(900),
       environment: {
         TARGET_TEXTRACT_BUCKET_NAME: textractResultsBucket.bucketName,
@@ -283,7 +280,6 @@ export class TextractPipelineStack extends cdk.Stack {
       code: lambda.Code.asset('code/comprehend_sync'),
       handler: 'comprehend_processor.lambda_handler',
       memorySize: 10000,
-      reservedConcurrentExecutions: 50,
       timeout: cdk.Duration.seconds(900),
       environment: {
         TARGET_ES_CLUSTER: props.esDomain.domainEndpoint,
