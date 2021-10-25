@@ -49,10 +49,10 @@ cd code/
 bash build.sh
 ```
 
-Next, navigate to the [infrastructure/](infrastructure/) folder and download the corresponding npm modules used for each AWS resource.
+Next, navigate to the [infrastructure/](infrastructure/) folder and download the corresponding npm modules used for each AWS resource. These are defined in the package.json.
 ```
 cd ../infrastructure 
-npm install -i
+npm install 
 
 # To ensure all packages are up to date
 npm outdated
@@ -60,7 +60,7 @@ npm outdated
 # If any packages are outdated, or you think are missing, install/update them using the following command.
 npm install -i aws-xxxxx@latest
 ```
-:warning: Installing the latest cdk packages could cause breaking changes :warning:
+:warning: Installing the latest cdk packages could cause breaking changes. :warning:
 
 Once packages are up-to-date, bootstrap the cdk application, and deploy
 ```
